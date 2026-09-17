@@ -3,6 +3,7 @@
 > **Môn học**: Phát triển Ứng dụng Di động Đa nền tảng (Cross-Platform Mobile App Development)  
 > **Khoa**: Khoa Khoa học Máy tính, Trường Đại học Công nghệ Thông tin và Truyền thông Việt - Hàn (VKU)  
 > **Chủ đề**: Week 5 — React Native & Expo (Part 1): Core Architecture & Components  
+> **Cloudflare Pages**: Đã cấu hình Pages Functions và D1 SQLite Database  
 
 ---
 
