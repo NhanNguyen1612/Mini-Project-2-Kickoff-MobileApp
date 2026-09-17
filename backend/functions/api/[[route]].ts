@@ -1,4 +1,4 @@
-import app from '../src/index';
+import app from '../../src/index';
 
 // Native Pages Functions handler using Hono's universal app.fetch
 export const onRequest = async (context: any) => {
