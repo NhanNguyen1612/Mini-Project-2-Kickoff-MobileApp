@@ -6,35 +6,70 @@ interface TimeSlotSelectorProps {
   bookedSlots: string[];
   selectedSlot: string | null;
   onSelectSlot: (slot: string) => void;
+  selectedDate?: string;
+}
+
+/**
+ * Kiểm tra xem một ca học trong ngày hôm nay đã kết thúc hay chưa
+ * Ví dụ: Ca '07:30 - 09:30' sẽ hết giờ khi qua 09:30
+ */
+function isSlotExpired(slot: string, selectedDate?: string): boolean {
+  if (!selectedDate) return false;
+
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  // Nếu là ngày trong quá khứ -> tất cả các ca đều hết giờ
+  if (selectedDate < todayStr) return true;
+
+  // Nếu là ngày mai hoặc các ngày trong tương lai -> không có ca nào hết giờ
+  if (selectedDate > todayStr) return false;
+
+  // Nếu là ngày hôm nay -> so sánh giờ kết thúc của ca học với giờ hiện tại
+  try {
+    const endTimeStr = slot.split(' - ')[1]?.trim(); // VD: "09:30"
+    if (!endTimeStr) return false;
+
+    const [endHour, endMinute] = endTimeStr.split(':').map(Number);
+    const slotEndTime = new Date();
+    slotEndTime.setHours(endHour, endMinute, 0, 0);
+
+    return now.getTime() >= slotEndTime.getTime();
+  } catch {
+    return false;
+  }
 }
 
 export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   bookedSlots,
   selectedSlot,
   onSelectSlot,
+  selectedDate,
 }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Chọn Khung Giờ (Ca học):</Text>
       <Text style={styles.subtitle}>
-        * Các ca đã có người đặt sẽ bị vô hiệu hóa để chống trùng lịch (Conflict Prevention)
+        * Ca đã hết giờ hoặc đã có người đặt sẽ bị khóa để chống trùng lịch
       </Text>
 
       <View style={styles.slotsGrid}>
         {STANDARD_TIME_SLOTS.map((slot) => {
           const isBooked = bookedSlots.includes(slot);
+          const isExpired = isSlotExpired(slot, selectedDate);
+          const isDisabled = isBooked || isExpired;
           const isSelected = selectedSlot === slot;
 
           return (
             <Pressable
               key={slot}
-              disabled={isBooked}
+              disabled={isDisabled}
               onPress={() => onSelectSlot(slot)}
               style={({ pressed }) => [
                 styles.slotButton,
-                isBooked && styles.slotBooked,
+                isDisabled && styles.slotBooked,
                 isSelected && styles.slotSelected,
-                pressed && !isBooked && { opacity: 0.75 },
+                pressed && !isDisabled && { opacity: 0.75 },
               ]}
               hitSlop={6}
             >
@@ -42,7 +77,7 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                 <Text
                   style={[
                     styles.slotTime,
-                    isBooked && styles.slotTimeBooked,
+                    isDisabled && styles.slotTimeBooked,
                     isSelected && styles.slotTimeSelected,
                   ]}
                 >
@@ -51,7 +86,9 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
                 <View
                   style={[
                     styles.dot,
-                    isBooked
+                    isExpired
+                      ? styles.dotExpired
+                      : isBooked
                       ? styles.dotBooked
                       : isSelected
                       ? styles.dotSelected
@@ -63,11 +100,22 @@ export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
               <Text
                 style={[
                   styles.slotStatus,
-                  isBooked && styles.slotStatusBooked,
-                  isSelected && styles.slotStatusSelected,
+                  isExpired
+                    ? styles.slotStatusExpired
+                    : isBooked
+                    ? styles.slotStatusBooked
+                    : isSelected
+                    ? styles.slotStatusSelected
+                    : null,
                 ]}
               >
-                {isBooked ? '🚫 Đã có người đặt' : isSelected ? '✓ Đang chọn' : 'Ca còn trống'}
+                {isExpired
+                  ? '⏰ Đã hết giờ'
+                  : isBooked
+                  ? '🚫 Đã có người đặt'
+                  : isSelected
+                  ? '✓ Đang chọn'
+                  : 'Ca còn trống'}
               </Text>
             </Pressable>
           );
@@ -108,7 +156,7 @@ const styles = StyleSheet.create({
   slotBooked: {
     backgroundColor: '#F1F5F9',
     borderColor: '#E2E8F0',
-    opacity: 0.6,
+    opacity: 0.55,
   },
   slotSelected: {
     backgroundColor: '#EFF6FF',
@@ -143,6 +191,9 @@ const styles = StyleSheet.create({
   dotBooked: {
     backgroundColor: '#EF4444',
   },
+  dotExpired: {
+    backgroundColor: '#94A3B8',
+  },
   dotSelected: {
     backgroundColor: '#2563EB',
   },
@@ -154,6 +205,10 @@ const styles = StyleSheet.create({
   slotStatusBooked: {
     color: '#DC2626',
     fontWeight: '600',
+  },
+  slotStatusExpired: {
+    color: '#64748B',
+    fontWeight: '500',
   },
   slotStatusSelected: {
     color: '#2563EB',

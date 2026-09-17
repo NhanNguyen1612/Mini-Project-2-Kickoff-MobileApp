@@ -119,16 +119,25 @@ export const RoomDetailScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Date Selector */}
+          {/* Date Selector: Đặt lịch trước 7 ngày (Slide 30) */}
           <View style={styles.dateSection}>
-            <Text style={styles.sectionHeader}>Ngày sử dụng phòng:</Text>
-            <View style={styles.dateSelector}>
-              {[0, 1, 2].map((offset) => {
+            <Text style={styles.sectionHeader}>Chọn ngày sử dụng phòng:</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.dateSelectorScroll}
+            >
+              {[0, 1, 2, 3, 4, 5, 6].map((offset) => {
                 const d = new Date();
                 d.setDate(d.getDate() + offset);
                 const dateStr = d.toISOString().split('T')[0];
-                const label =
-                  offset === 0 ? 'Hôm nay' : offset === 1 ? 'Ngày mai' : `Ngày ${d.getDate()}/${d.getMonth() + 1}`;
+                const dayName =
+                  offset === 0
+                    ? 'Hôm nay'
+                    : offset === 1
+                    ? 'Ngày mai'
+                    : `Thứ ${d.getDay() === 0 ? 'CN' : d.getDay() + 1}`;
+                const displayDate = `${d.getDate()}/${d.getMonth() + 1}`;
                 const isSelected = selectedDate === dateStr;
 
                 return (
@@ -146,22 +155,23 @@ export const RoomDetailScreen: React.FC = () => {
                     hitSlop={6}
                   >
                     <Text style={[styles.dateText, isSelected && styles.dateTextSelected]}>
-                      {label}
+                      {dayName}
                     </Text>
                     <Text style={[styles.dateSubtext, isSelected && styles.dateSubtextSelected]}>
-                      {dateStr}
+                      {displayDate}
                     </Text>
                   </Pressable>
                 );
               })}
-            </View>
+            </ScrollView>
           </View>
 
-          {/* Time Slot Selector with Conflict Prevention (Slide 30) */}
+          {/* Time Slot Selector with Conflict Prevention & Expired Slot Detection (Slide 30) */}
           <TimeSlotSelector
             bookedSlots={bookedSlots || []}
             selectedSlot={selectedSlot}
             onSelectSlot={setSelectedSlot}
+            selectedDate={selectedDate}
           />
 
           {/* Purpose Input */}
@@ -302,14 +312,14 @@ const styles = StyleSheet.create({
   dateSection: {
     marginTop: 18,
   },
-  dateSelector: {
-    flexDirection: 'row',
+  dateSelectorScroll: {
+    paddingVertical: 4,
     gap: 10,
   },
   dateBtn: {
-    flex: 1,
+    width: 80,
     backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 10,
     alignItems: 'center',
     borderWidth: 1.5,
