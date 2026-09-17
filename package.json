@@ -1,0 +1,11 @@
+{
+  "name": "vku-room-booking-pages",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "echo build success"
+  },
+  "dependencies": {
+    "hono": "^4.6.14"
+  }
+}

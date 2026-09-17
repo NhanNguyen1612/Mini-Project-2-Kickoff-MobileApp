@@ -1,5 +1,6 @@
-import { handle } from 'hono/cloudflare-pages';
 import app from '../src/index';
 
-// Cloudflare Pages Functions adapter for Hono
-export const onRequest = handle(app);
+// Native Pages Functions handler using Hono's universal app.fetch
+export const onRequest = async (context: any) => {
+  return app.fetch(context.request, context.env, context);
+};
