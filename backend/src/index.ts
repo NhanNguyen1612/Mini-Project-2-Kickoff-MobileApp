@@ -21,8 +21,17 @@ app.get('/', (c) => {
       bookings: 'GET /api/bookings?student_id=XXX',
       createBooking: 'POST /api/bookings',
       cancelBooking: 'DELETE /api/bookings/:id',
-      seed: 'POST /api/seed',
+      seed: 'GET or POST /api/seed',
     },
+  });
+});
+
+app.get('/api/debug-env', (c) => {
+  const env = c.env || {};
+  return c.json({
+    hasEnv: !!c.env,
+    keys: Object.keys(env),
+    hasDB: !!(env as any).DB,
   });
 });
 
