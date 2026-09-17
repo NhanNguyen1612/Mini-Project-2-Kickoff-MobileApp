@@ -1,20 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   ScrollView,
+  Pressable,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBookingStore } from '../store/useBookingStore';
 
 /**
  * Profile Screen (Slide 29 Bottom Tabs: Browse Rooms | My Bookings | Profile)
- * Hiển thị thông tin sinh viên VKU thực hiện đồ án
+ * Cho phép xem và chỉnh sửa thông tin sinh viên VKU (Họ tên, MSSV, Email, Chuyên ngành)
  */
 export const ProfileScreen: React.FC = () => {
   const { user, setUser } = useBookingStore();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [fullName, setFullName] = useState(user.fullName);
+  const [studentId, setStudentId] = useState(user.studentId);
+  const [email, setEmail] = useState(user.email);
+  const [department, setDepartment] = useState(user.department);
+
+  const handleSave = () => {
+    if (!fullName.trim() || !studentId.trim()) {
+      Alert.alert('Thiếu thông tin', 'Họ tên và Mã sinh viên không được để trống.');
+      return;
+    }
+
+    setUser({
+      fullName: fullName.trim(),
+      studentId: studentId.trim(),
+      email: email.trim(),
+      department: department.trim(),
+    });
+
+    setIsEditing(false);
+    Alert.alert('Thành công', 'Thông tin sinh viên đã được cập nhật!');
+  };
+
+  const handleCancel = () => {
+    // Khôi phục lại dữ liệu ban đầu
+    setFullName(user.fullName);
+    setStudentId(user.studentId);
+    setEmail(user.email);
+    setDepartment(user.department);
+    setIsEditing(false);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -23,7 +57,7 @@ export const ProfileScreen: React.FC = () => {
         <View style={styles.header}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
-              {user.fullName.split(' ').slice(-1)[0][0]}
+              {user.fullName.trim().split(' ').slice(-1)[0]?.[0] || 'U'}
             </Text>
           </View>
           <Text style={styles.name}>{user.fullName}</Text>
@@ -31,38 +65,104 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.dept}>{user.department}</Text>
         </View>
 
-        {/* Thông tin sinh viên */}
+        {/* Thông tin sinh viên & Nút chỉnh sửa */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông tin sinh viên</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Thông tin sinh viên</Text>
+            {!isEditing ? (
+              <Pressable
+                style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.7 }]}
+                onPress={() => setIsEditing(true)}
+              >
+                <Text style={styles.editBtnText}>✏️ Chỉnh sửa</Text>
+              </Pressable>
+            ) : null}
+          </View>
+
           <View style={styles.card}>
+            {/* Họ và tên */}
             <View style={styles.row}>
               <Text style={styles.label}>Họ và tên</Text>
-              <TextInput
-                style={styles.editableValue}
-                value={user.fullName}
-                onChangeText={(t) => setUser({ fullName: t })}
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Nhập họ và tên"
+                />
+              ) : (
+                <Text style={styles.value}>{user.fullName}</Text>
+              )}
             </View>
             <View style={styles.divider} />
+
+            {/* Mã sinh viên */}
             <View style={styles.row}>
               <Text style={styles.label}>Mã sinh viên</Text>
-              <TextInput
-                style={styles.editableValue}
-                value={user.studentId}
-                onChangeText={(t) => setUser({ studentId: t })}
-              />
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={studentId}
+                  onChangeText={setStudentId}
+                  placeholder="VD: 22IT001"
+                />
+              ) : (
+                <Text style={styles.value}>{user.studentId}</Text>
+              )}
             </View>
             <View style={styles.divider} />
+
+            {/* Email VKU */}
             <View style={styles.row}>
               <Text style={styles.label}>Email VKU</Text>
-              <Text style={styles.value}>{user.email}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="VD: annv.22it@vku.udn.vn"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              ) : (
+                <Text style={styles.value}>{user.email}</Text>
+              )}
             </View>
             <View style={styles.divider} />
+
+            {/* Chuyên ngành / Khoa */}
             <View style={styles.row}>
               <Text style={styles.label}>Chuyên ngành</Text>
-              <Text style={styles.value}>{user.department}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.input}
+                  value={department}
+                  onChangeText={setDepartment}
+                  placeholder="VD: Khoa Công nghệ Thông tin"
+                />
+              ) : (
+                <Text style={styles.value}>{user.department}</Text>
+              )}
             </View>
           </View>
+
+          {/* Các nút bấm khi ở chế độ chỉnh sửa */}
+          {isEditing && (
+            <View style={styles.actionBtnRow}>
+              <Pressable
+                style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+                onPress={handleCancel}
+              >
+                <Text style={styles.cancelBtnText}>Hủy bỏ</Text>
+              </Pressable>
+              <Pressable
+                style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.7 }]}
+                onPress={handleSave}
+              >
+                <Text style={styles.saveBtnText}>Lưu thông tin</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Kiến trúc ứng dụng theo Slide Week 5 */}
@@ -161,14 +261,30 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 16,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: '#334155',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 8,
-    marginLeft: 4,
+  },
+  editBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+  },
+  editBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#2563EB',
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -181,31 +297,68 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 13,
+    paddingVertical: 12,
   },
   label: {
     fontSize: 14,
     color: '#64748B',
     fontWeight: '500',
+    width: 100,
   },
   value: {
     fontSize: 14,
     color: '#0F172A',
     fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
   },
-  editableValue: {
+  input: {
     fontSize: 14,
     color: '#2563EB',
     fontWeight: '600',
     textAlign: 'right',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
+    flex: 1,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     backgroundColor: '#F1F5F9',
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   divider: {
     height: 1,
     backgroundColor: '#F1F5F9',
+  },
+  actionBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  saveBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   infoRow: {
     flexDirection: 'row',
