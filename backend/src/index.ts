@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { Bindings, CreateBookingRequest, Room } from './types';
+import { MOCK_ROOMS, INITIAL_MOCK_BOOKINGS, STANDARD_TIME_SLOTS } from './mockData';
 
 const app = new Hono<{ Bindings: Bindings }>();
 
@@ -64,15 +65,32 @@ function formatRoom(row: any): Room {
 // 1. GET /api/rooms - List and filter rooms
 app.get('/api/rooms', async (c) => {
   const db = c.env.DB;
-  if (!db) {
-    return c.json({ error: 'Database binding not found' }, 500);
-  }
 
   const search = c.req.query('search')?.trim().toLowerCase() || '';
   const building = c.req.query('building') || '';
   const minCapacity = Number(c.req.query('minCapacity')) || 0;
   const date = c.req.query('date') || new Date().toISOString().split('T')[0];
   const slot = c.req.query('slot') || '';
+
+  // Graceful fallback nếu Cloudflare Pages chưa bind D1
+  if (!db) {
+    let filtered = [...MOCK_ROOMS];
+    if (search) {
+      filtered = filtered.filter(
+        (r) =>
+          r.name.toLowerCase().includes(search) ||
+          r.building.toLowerCase().includes(search) ||
+          r.description.toLowerCase().includes(search)
+      );
+    }
+    if (building && building !== 'All' && building !== 'Tất cả') {
+      filtered = filtered.filter((r) => r.building === building);
+    }
+    if (minCapacity > 0) {
+      filtered = filtered.filter((r) => r.capacity >= minCapacity);
+    }
+    return c.json({ data: filtered, total: filtered.length, source: 'fallback' });
+  }
 
   try {
     let query = 'SELECT * FROM rooms WHERE is_active = 1';
@@ -127,6 +145,23 @@ app.get('/api/rooms/:id', async (c) => {
   const db = c.env.DB;
   const roomId = c.req.param('id');
   const date = c.req.query('date') || new Date().toISOString().split('T')[0];
+
+  if (!db) {
+    const room = MOCK_ROOMS.find((r) => r.id === roomId) || MOCK_ROOMS[0];
+    const activeBookings = INITIAL_MOCK_BOOKINGS.filter(
+      (b) => b.room_id === roomId && b.booking_date === date && b.status === 'confirmed'
+    );
+    const bookedSlots = activeBookings.map((b) => b.time_slot);
+    return c.json({
+      data: {
+        room,
+        date,
+        standard_slots: STANDARD_TIME_SLOTS,
+        booked_slots: bookedSlots,
+        available_slots: STANDARD_TIME_SLOTS.filter((s) => !bookedSlots.includes(s)),
+      },
+    });
+  }
 
   try {
     const roomRow = await db.prepare('SELECT * FROM rooms WHERE id = ?').bind(roomId).first();
@@ -191,6 +226,14 @@ app.get('/api/rooms/:id/availability', async (c) => {
 app.get('/api/bookings', async (c) => {
   const db = c.env.DB;
   const studentId = c.req.query('student_id');
+
+  if (!db) {
+    if (studentId) {
+      const userBookings = INITIAL_MOCK_BOOKINGS.filter((b) => b.user_student_id === studentId);
+      return c.json({ data: userBookings });
+    }
+    return c.json({ data: INITIAL_MOCK_BOOKINGS });
+  }
 
   try {
     let query = `

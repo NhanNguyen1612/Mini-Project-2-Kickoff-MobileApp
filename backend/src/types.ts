@@ -24,6 +24,10 @@ export interface Booking {
   purpose: string;
   status: BookingStatus;
   created_at: string;
+  room_name?: string;
+  building?: string;
+  capacity?: number;
+  image_url?: string;
 }
 
 export interface CreateBookingRequest {
