@@ -60,4 +60,5 @@ export interface UserProfile {
   fullName: string;
   email: string;
   department: string;
+  password?: string;
 }

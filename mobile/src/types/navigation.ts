@@ -7,6 +7,7 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  Auth: undefined;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
   RoomDetail: { roomId: string };
 };

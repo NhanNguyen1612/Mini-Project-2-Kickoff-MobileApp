@@ -16,7 +16,7 @@ import { useBookingStore } from '../store/useBookingStore';
  * Cho phép xem và chỉnh sửa thông tin sinh viên VKU (Họ tên, MSSV, Email, Chuyên ngành)
  */
 export const ProfileScreen: React.FC = () => {
-  const { user, setUser } = useBookingStore();
+  const { user, setUser, logout } = useBookingStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(user.fullName);
@@ -196,6 +196,23 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
+        {/* Nút Đăng Xuất (Logout) */}
+        <Pressable
+          style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.7 }]}
+          onPress={() => {
+            Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất tài khoản này không?', [
+              { text: 'Hủy', style: 'cancel' },
+              {
+                text: 'Đăng xuất',
+                style: 'destructive',
+                onPress: () => logout(),
+              },
+            ]);
+          }}
+        >
+          <Text style={styles.logoutBtnText}>🚪 Đăng Xuất Khỏi Tài Khoản</Text>
+        </Pressable>
+
         {/* Footer */}
         <View style={styles.infoFooter}>
           <Text style={styles.footerText}>
@@ -374,6 +391,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#0F172A',
+  },
+  logoutBtn: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  logoutBtnText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '700',
   },
   infoFooter: {
     alignItems: 'center',
