@@ -9,7 +9,7 @@ const app = new Hono<{ Bindings: Bindings }>();
 app.use('*', cors());
 
 // Health check & Info
-app.get('/', (c) => {
+app.get('/api', (c) => {
   return c.json({
     name: 'VKU Study Room Booking API',
     status: 'online',
