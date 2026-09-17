@@ -2,18 +2,27 @@
 
 > **Môn học**: Phát triển Ứng dụng Di động Đa nền tảng (Cross-Platform Mobile App Development)  
 > **Khoa**: Khoa Khoa học Máy tính, Trường Đại học Công nghệ Thông tin và Truyền thông Việt - Hàn (VKU)  
+> **Giảng viên**: TS. Nguyễn Thanh Tuấn  
 > **Chủ đề**: Week 5 — React Native & Expo (Part 1): Core Architecture & Components  
-> **Cloudflare Pages**: Đã cấu hình Pages Functions và D1 SQLite Database  
 
 ---
 
-## 📌 Giới Thiệu Tổng Quan
+## 📌 Bám Sát Yêu Cầu Slide Week 5 (100% Theo Đề Bài)
 
-Dự án là ứng dụng di động thông minh hỗ trợ sinh viên VKU tìm kiếm, kiểm tra trạng thái và đặt phòng học / phòng lab thực hành theo thời gian thực (Real-time Study Room & Lab Booking).
+Dự án tập trung hoàn toàn vào xây dựng **Ứng dụng Di động thuần React Native + Expo Managed Workflow** theo đúng nội dung và tiêu chí chấm điểm của slide bài giảng:
 
-Dự án được cấu trúc theo 2 phân hệ rõ ràng:
-1. **Phần Cốt Lõi Bắt Buộc (`mobile/`)**: Ứng dụng di động đáp ứng **100% yêu cầu trong slide bài giảng Week 5**, được tối ưu cho việc chấm điểm bài tập với khả năng chạy độc lập hoàn hảo (Standalone Mock Data).
-2. **Phần Mở Rộng (`backend/`)**: Hệ thống Serverless API chạy trên **Cloudflare Workers** và cơ sở dữ liệu edge **Cloudflare D1 (SQLite)**, hỗ trợ triển khai thực tế trên toàn cầu.
+| Tiêu chí trong Slide | Thành phần triển khai trong dự án | Vị trí file mã nguồn |
+| :--- | :--- | :--- |
+| **Framework & Ngôn ngữ** (Slide 10, 30) | Expo Managed Workflow + TypeScript Strict Mode (`strict: true`) | `mobile/app.json`, `mobile/tsconfig.json` |
+| **Core Components** (Slide 13-19) | `<View>`, `<Text>`, `<Image>` (`expo-image`), `<FlatList>`, `<TextInput>`, `<Pressable>` | `src/components/`, `src/screens/` |
+| **StyleSheet & Flexbox** (Slide 14, 15, 21-23) | `StyleSheet.create()`, Flexbox layout (mặc định `column`), `gap`, `space-between` | Toàn bộ các components |
+| **Safe Area & Dynamic Island** (Slide 24) | `SafeAreaProvider` và `SafeAreaView` từ `react-native-safe-area-context` | `App.tsx`, tất cả các màn hình |
+| **Custom Hook Responsive** (Slide 26, 27) | `useResponsiveLayout.ts` tự động chia cột (1 cột Mobile, 2 cột rộng, 3 cột Tablet) | `src/hooks/useResponsiveLayout.ts` |
+| **Tối ưu FlatList 60fps** (Slide 17, 32) | `initialNumToRender={10}`, `maxToRenderPerBatch={5}`, `windowSize={5}`, memoized card | `src/screens/BrowseRoomsScreen.tsx` |
+| **Dữ liệu mẫu >= 20 phòng** (Slide 32) | 24 phòng học, giảng đường và lab thực tế tại VKU (A1, A2, A3, Thư viện, Tòa V, Khu K) | `src/services/mockData.ts` |
+| **Time-slot & Chống Trùng Lịch** (Slide 30) | `TimeSlotSelector.tsx` tự động vô hiệu hóa các ca đã có người đặt trước | `src/components/TimeSlotSelector.tsx`, `api.ts` |
+| **Navigation** (Slide 29, 30) | React Navigation 7 (Native Stack `RootNavigator` + Bottom Tabs `MainTabs`) | `src/navigation/` |
+| **State Management** (Slide 30) | Zustand (Client UI State) + TanStack Query (Server State Caching) | `src/store/`, `src/hooks/useRoomsQuery.ts` |
 
 ---
 
@@ -21,93 +30,52 @@ Dự án được cấu trúc theo 2 phân hệ rõ ràng:
 
 ```
 Mini-Project-2-Kickoff-MobileApp/
-├── mobile/                                 # 📱 Ứng Dụng Mobile (Expo Managed)
-│   ├── app.json                            # Expo config chuẩn theo slide 11
-│   ├── tsconfig.json                       # TypeScript strict mode tuyệt đối (slide 30)
-│   ├── App.tsx                             # Entry: QueryClientProvider + SafeAreaProvider
-│   ├── package.json
-│   ├── README.md                           # Hướng dẫn chi tiết chạy app
-│   └── src/
-│       ├── types/                          # Room, Booking, TimeSlot, Navigation types
-│       ├── navigation/                     # React Navigation 7 (RootNavigator + MainTabs)
-│       ├── hooks/
-│       │   ├── useResponsiveLayout.ts      # Hook co giãn số cột theo kích thước (Slide 26)
-│       │   ├── useRoomsQuery.ts            # TanStack Query hook fetch phòng (Slide 30)
-│       │   └── useBookingsQuery.ts         # TanStack Query hook đặt/hủy phòng & invalidate
-│       ├── store/
-│       │   └── useBookingStore.ts          # Zustand store cho Client UI State (Slide 30)
-│       ├── components/
-│       │   ├── RoomCard.tsx                # Card phòng (Slide 14-15) + expo-image (Slide 16)
-│       │   ├── SearchBar.tsx               # Controlled TextInput search (Slide 18)
-│       │   ├── FilterChips.tsx             # Multi-parameter chips (Slide 30)
-│       │   └── TimeSlotSelector.tsx        # Chống trùng lịch (Slide 30)
-│       ├── screens/
-│       │   ├── BrowseRoomsScreen.tsx       # 60fps FlatList feed + responsive grid (Slide 17, 27)
-│       │   ├── RoomDetailScreen.tsx        # Chi tiết phòng & đặt lịch
-│       │   ├── MyBookingsScreen.tsx        # Quản lý danh sách phòng đã đặt & hủy phòng
-│       │   └── ProfileScreen.tsx           # Thông tin sinh viên & bộ chọn Cloudflare API / Mock
-│       └── services/
-│           ├── api.ts                      # Client gọi API Cloudflare + tự động fallback
-│           └── mockData.ts                 # 24 phòng học/lab thực tế tại VKU (Slide 32)
-│
-├── backend/                                # ☁️ Backend Cloudflare Workers & D1 (Mở Rộng)
-│   ├── wrangler.jsonc                      # Cấu hình D1 binding & Cloudflare Worker
-│   ├── package.json
-│   ├── README.md                           # Hướng dẫn deploy Cloudflare D1
-│   └── src/
-│       ├── index.ts                        # Hono REST API + thuật toán chống trùng lịch
-│       ├── types.ts                        # Type definitions
-│       └── db/
-│           ├── schema.sql                  # Schema D1 với Unique Partial Index
-│           └── seed.sql                    # 24 phòng học mẫu và lịch đặt khởi tạo
-│
-├── Week-05-React-Native-Part1.pdf          # Slide bài giảng gốc
-└── README.md                               # Tài liệu tổng quan dự án
+├── Week-05-React-Native-Part1.pdf          # Slide bài giảng chính thức
+├── README.md                               # Tài liệu hướng dẫn đồ án
+└── mobile/                                 # Ứng dụng Di động React Native Expo
+    ├── app.json                            # Cấu hình Expo chuẩn
+    ├── tsconfig.json                       # TypeScript strict mode
+    ├── App.tsx                             # Root entry (SafeAreaProvider + TanStack Query)
+    ├── package.json                        # Khai báo thư viện chuẩn
+    └── src/
+        ├── types/                          # Room, Booking, TimeSlot, Navigation types
+        ├── navigation/                     # React Navigation 7 (RootNavigator + MainTabs)
+        ├── hooks/
+        │   ├── useResponsiveLayout.ts      # Custom hook responsive (Slide 26)
+        │   ├── useRoomsQuery.ts            # TanStack Query fetch phòng (Slide 30)
+        │   └── useBookingsQuery.ts         # TanStack Query đặt và hủy phòng (Slide 30)
+        ├── store/
+        │   └── useBookingStore.ts          # Zustand store quản lý state sinh viên & đặt phòng
+        ├── components/
+        │   ├── RoomCard.tsx                # Card phòng chuẩn wireframe (Slide 14, 15, 16)
+        │   ├── SearchBar.tsx               # Ô tìm kiếm Controlled TextInput (Slide 18)
+        │   ├── FilterChips.tsx             # Bộ lọc đa tiêu chí (Slide 30)
+        │   └── TimeSlotSelector.tsx        # Chọn ca học & Chống trùng lịch (Slide 30)
+        ├── screens/
+        │   ├── BrowseRoomsScreen.tsx       # Màn hình chính FlatList 60fps (Slide 17, 27)
+        │   ├── RoomDetailScreen.tsx        # Màn hình chi tiết phòng & form đặt lịch
+        │   ├── MyBookingsScreen.tsx        # Màn hình quản lý các lịch đã đặt
+        │   └── ProfileScreen.tsx           # Màn hình thông tin sinh viên VKU
+        └── services/
+            ├── api.ts                      # Service xử lý đặt phòng và chống trùng lịch
+            └── mockData.ts                 # 24 phòng học thực tế tại VKU
 ```
 
 ---
 
-## ✅ Bảng Đối Chiếu 100% Yêu Cầu Slide Week 5
+## 🚀 Hướng Dẫn Chạy Ứng Dụng
 
-| Mục Tiêu / Tiêu Chí | Yêu Cầu trong Slide | Cách Triển Khai Trong Dự Án | Trạng Thái |
-| :--- | :--- | :--- | :---: |
-| **Workflow** | Expo Managed Workflow (Slide 9-10) | Cấu hình `app.json` và `package.json` theo Expo SDK mới nhất | ✅ Đạt 100% |
-| **Language** | TypeScript Strict Mode (Slide 30) | `tsconfig.json` bật `"strict": true`, không dùng `any` | ✅ Đạt 100% |
-| **Core Components** | `<View>`, `<Text>`, `<Image>`, `<FlatList>`, `<TextInput>`, `<Pressable>` (Slide 13-19) | Sử dụng toàn bộ core components, không dùng HTML tags | ✅ Đạt 100% |
-| **Styling** | `StyleSheet.create()` + Flexbox (Slide 20-23) | Mọi style đều qua `StyleSheet.create()`, layout dọc/ngang chuẩn Flexbox | ✅ Đạt 100% |
-| **Image Optimization** | Khuyến nghị `expo-image` (Slide 16) | Sử dụng `expo-image` với cache, blurhash placeholder và transition | ✅ Đạt 100% |
-| **Safe Area Handling** | `react-native-safe-area-context` (Slide 24) | `SafeAreaProvider` bọc toàn app, `SafeAreaView` xử lý notch/Dynamic Island | ✅ Đạt 100% |
-| **Responsive Design** | Custom Hook `useResponsiveLayout` (Slide 26-27) | `src/hooks/useResponsiveLayout.ts` tự động co giãn 1 cột (điện thoại), 2-3 cột (tablet/xoay ngang) | ✅ Đạt 100% |
-| **60fps FlatList** | Tối ưu danh sách & ít nhất 20 phòng (Slide 17, 32) | Cấu hình `initialNumToRender={10}`, `maxToRenderPerBatch={5}`, `windowSize={5}` với 24 phòng mẫu | ✅ Đạt 100% |
-| **Search & Filters** | Search bar & multi-parameter filter chips (Slide 30) | `SearchBar` (controlled component) + `FilterChips` lọc Tòa nhà và Sức chứa | ✅ Đạt 100% |
-| **Chống Trùng Lịch** | Time-slot selector with conflict prevention (Slide 30) | `TimeSlotSelector` tự động khóa ca đã đặt, SQLite Unique index ngăn chặn race-condition | ✅ Đạt 100% |
-| **Navigation** | React Navigation 7 (Stack + Tabs) (Slide 30) | Tách biệt `RootNavigator.tsx` (Stack) và `MainTabs.tsx` (Tabs) | ✅ Đạt 100% |
-| **State Management** | Zustand (client) + TanStack Query (server) (Slide 30) | Zustand quản lý filters/user; TanStack Query quản lý fetching/caching | ✅ Đạt 100% |
-
----
-
-## ⚡ Hướng Dẫn Chạy Nhanh
-
-### 1. Chạy Ứng Dụng Mobile (Expo)
+### 1. Cài đặt thư viện:
 ```bash
 cd mobile
 npm install
+```
+
+### 2. Chạy ứng dụng:
+```bash
 npx expo start
 ```
-- Quét mã QR bằng **Expo Go** trên điện thoại thật (Android / iOS).
-- Hoặc nhấn `a` để mở trên Android Emulator.
-- Hoặc nhấn `w` để mở trên trình duyệt Web.
 
-### 2. Chạy Backend Cloudflare D1 (Tùy chọn / Mở rộng)
-```bash
-cd backend
-npm install
-
-# Khởi tạo database D1 cục bộ với 24 phòng học VKU
-npx wrangler d1 execute vku-booking-db --local --file=src/db/schema.sql
-npx wrangler d1 execute vku-booking-db --local --file=src/db/seed.sql
-
-# Chạy server cục bộ
-npx wrangler dev
-```
-- Khi deploy lên Cloudflare thật: xem chi tiết hướng dẫn tại [backend/README.md](file:///d:/Study-2026-2027/HK1/Didongdanentan/Mini-Project-2-Kickoff-MobileApp/backend/README.md).
+- **Chạy trên Máy ảo Android (Android Studio)**: Nhấn phím `a` trên bàn phím.
+- **Chạy trên Điện thoại thật (Expo Go)**: Dùng app Expo Go quét mã QR trên màn hình.
+- **Chạy trên Trình duyệt Web**: Nhấn phím `w` trên bàn phím.

@@ -10,31 +10,16 @@ interface FetchRoomsParams {
   slot?: string;
 }
 
+/**
+ * Service quản lý dữ liệu phòng học và đặt lịch (Slide 30, 32)
+ * Sử dụng 24 phòng học thực tế tại VKU và xử lý logic chống trùng lịch (Conflict Prevention)
+ */
 export const apiService = {
-  // 1. Get Rooms
+  // 1. Lấy danh sách phòng học và lọc theo tìm kiếm, tòa nhà, sức chứa (Slide 17, 18, 30)
   async getRooms(params: FetchRoomsParams = {}): Promise<Room[]> {
-    const { apiUrl, isOfflineMode } = useBookingStore.getState();
+    // Mô phỏng độ trễ mạng nhẹ để demo hiệu ứng ActivityIndicator loading
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
-    if (apiUrl && !isOfflineMode) {
-      try {
-        const query = new URLSearchParams();
-        if (params.search) query.append('search', params.search);
-        if (params.building && params.building !== 'Tất cả') query.append('building', params.building);
-        if (params.minCapacity) query.append('minCapacity', params.minCapacity.toString());
-        if (params.date) query.append('date', params.date);
-        if (params.slot) query.append('slot', params.slot);
-
-        const res = await fetch(`${apiUrl}/api/rooms?${query.toString()}`);
-        if (res.ok) {
-          const json = await res.json();
-          return json.data;
-        }
-      } catch (err) {
-        console.warn('API fetch failed, falling back to local data:', err);
-      }
-    }
-
-    // Local / Offline fallback
     let filtered = [...MOCK_ROOMS];
 
     if (params.search) {
@@ -58,28 +43,12 @@ export const apiService = {
     return filtered;
   },
 
-  // 2. Get Room Detail & Available Slots
+  // 2. Lấy thông tin chi tiết phòng & danh sách các ca học còn trống / đã được đặt (Slide 30)
   async getRoomDetail(
     roomId: string,
     date: string
   ): Promise<{ room: Room; availableSlots: string[]; bookedSlots: string[] }> {
-    const { apiUrl, isOfflineMode, localBookings } = useBookingStore.getState();
-
-    if (apiUrl && !isOfflineMode) {
-      try {
-        const res = await fetch(`${apiUrl}/api/rooms/${roomId}?date=${date}`);
-        if (res.ok) {
-          const json = await res.json();
-          return {
-            room: json.data.room,
-            availableSlots: json.data.available_slots,
-            bookedSlots: json.data.booked_slots,
-          };
-        }
-      } catch (err) {
-        console.warn('API getRoomDetail failed, fallback to local:', err);
-      }
-    }
+    const { localBookings } = useBookingStore.getState();
 
     const room = MOCK_ROOMS.find((r) => r.id === roomId) || MOCK_ROOMS[0];
     const activeBookings = localBookings.filter(
@@ -95,7 +64,7 @@ export const apiService = {
     };
   },
 
-  // 3. Get Slot Availability Matrix
+  // 3. Ma trận ca học
   async getSlotAvailability(roomId: string, date: string): Promise<SlotAvailability[]> {
     const { availableSlots } = await this.getRoomDetail(roomId, date);
     return STANDARD_TIME_SLOTS.map((slot) => ({
@@ -104,60 +73,20 @@ export const apiService = {
     }));
   },
 
-  // 4. Get User Bookings
+  // 4. Lấy lịch đặt phòng của sinh viên (Tab My Bookings - Slide 29)
   async getBookings(studentId?: string): Promise<Booking[]> {
-    const { apiUrl, isOfflineMode, localBookings } = useBookingStore.getState();
-
-    if (apiUrl && !isOfflineMode) {
-      try {
-        const url = studentId
-          ? `${apiUrl}/api/bookings?student_id=${encodeURIComponent(studentId)}`
-          : `${apiUrl}/api/bookings`;
-        const res = await fetch(url);
-        if (res.ok) {
-          const json = await res.json();
-          return json.data;
-        }
-      } catch (err) {
-        console.warn('API getBookings failed, fallback to local:', err);
-      }
-    }
-
+    const { localBookings } = useBookingStore.getState();
     if (studentId) {
       return localBookings.filter((b) => b.user_student_id === studentId);
     }
     return localBookings;
   },
 
-  // 5. Create Booking with Conflict Prevention
+  // 5. Đặt phòng mới với thuật toán Chống Trùng Lịch (Conflict Prevention - Slide 30)
   async createBooking(payload: CreateBookingPayload): Promise<Booking> {
-    const { apiUrl, isOfflineMode, localBookings, addLocalBooking } = useBookingStore.getState();
+    const { localBookings, addLocalBooking } = useBookingStore.getState();
 
-    if (apiUrl && !isOfflineMode) {
-      try {
-        const res = await fetch(`${apiUrl}/api/bookings`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-
-        const json = await res.json();
-        if (!res.ok) {
-          throw new Error(json.error || 'Lỗi khi đặt phòng từ máy chủ');
-        }
-        // Also sync into local state for immediate responsiveness
-        addLocalBooking(json.data);
-        return json.data;
-      } catch (err: any) {
-        // If it's a 409 conflict, propagate error directly
-        if (err.message && err.message.includes('Xung đột')) {
-          throw err;
-        }
-        console.warn('API createBooking failed, falling back to local booking check:', err);
-      }
-    }
-
-    // Local Conflict Check (Chống trùng lịch cục bộ)
+    // Ràng buộc duy nhất: Một phòng vào một ngày và một ca học chỉ có 1 người đặt
     const hasConflict = localBookings.some(
       (b) =>
         b.room_id === payload.room_id &&
@@ -172,7 +101,7 @@ export const apiService = {
 
     const room = MOCK_ROOMS.find((r) => r.id === payload.room_id);
     const newBooking: Booking = {
-      id: 'b-local-' + Date.now(),
+      id: 'b-' + Date.now(),
       room_id: payload.room_id,
       user_name: payload.user_name,
       user_student_id: payload.user_student_id,
@@ -191,20 +120,10 @@ export const apiService = {
     return newBooking;
   },
 
-  // 6. Cancel Booking
+  // 6. Hủy lịch đặt phòng
   async cancelBooking(bookingId: string): Promise<boolean> {
-    const { apiUrl, isOfflineMode, cancelLocalBooking } = useBookingStore.getState();
-
+    const { cancelLocalBooking } = useBookingStore.getState();
     cancelLocalBooking(bookingId);
-
-    if (apiUrl && !isOfflineMode) {
-      try {
-        await fetch(`${apiUrl}/api/bookings/${bookingId}`, { method: 'DELETE' });
-      } catch (err) {
-        console.warn('Failed to delete on server:', err);
-      }
-    }
-
     return true;
   },
 };

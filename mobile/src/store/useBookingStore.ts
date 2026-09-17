@@ -18,13 +18,7 @@ interface BookingStoreState {
   setSelectedDate: (date: string) => void;
   resetFilters: () => void;
 
-  // Connection & Cloudflare Configuration
-  apiUrl: string;
-  isOfflineMode: boolean;
-  setApiUrl: (url: string) => void;
-  setIsOfflineMode: (offline: boolean) => void;
-
-  // Local / Offline Bookings Store (Guarantees 100% app functionality even offline)
+  // Local Bookings Store (Slide 30: State Management with Zustand)
   localBookings: Booking[];
   addLocalBooking: (booking: Booking) => void;
   cancelLocalBooking: (id: string) => void;
@@ -79,11 +73,6 @@ export const useBookingStore = create<BookingStoreState>((set) => ({
         selectedDate: today,
       },
     }),
-
-  apiUrl: '', // empty means local mock or can be set to Cloudflare Worker URL
-  isOfflineMode: false,
-  setApiUrl: (url) => set({ apiUrl: url }),
-  setIsOfflineMode: (offline) => set({ isOfflineMode: offline }),
 
   localBookings: INITIAL_MOCK_BOOKINGS,
   addLocalBooking: (booking) =>
