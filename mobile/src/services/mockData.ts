@@ -286,52 +286,6 @@ export const MOCK_ROOMS: Room[] = [
   },
 ];
 
-const today = new Date().toISOString().split('T')[0];
+// Danh sách đặt phòng ban đầu để trống hoàn toàn để bạn tự do thao tác, book và test
+export const INITIAL_MOCK_BOOKINGS: Booking[] = [];
 
-export const INITIAL_MOCK_BOOKINGS: Booking[] = [
-  {
-    id: 'b-init-1',
-    room_id: 'r-101',
-    user_name: 'Trần Văn Nam',
-    user_student_id: '21IT001',
-    booking_date: today,
-    time_slot: '07:30 - 09:30',
-    purpose: 'Học nhóm Mobile App React Native',
-    status: 'confirmed',
-    created_at: new Date(Date.now() - 3600000).toISOString(),
-    room_name: 'Lab A3-101 (Software Eng)',
-    building: 'Tòa nhà A3',
-    capacity: 35,
-    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80',
-  },
-  {
-    id: 'b-init-2',
-    room_id: 'r-101',
-    user_name: 'Lê Thị Thu Thảo',
-    user_student_id: '21IT045',
-    booking_date: today,
-    time_slot: '09:45 - 11:45',
-    purpose: 'Ôn thi cuối kỳ Lập trình mạng',
-    status: 'confirmed',
-    created_at: new Date(Date.now() - 7200000).toISOString(),
-    room_name: 'Lab A3-101 (Software Eng)',
-    building: 'Tòa nhà A3',
-    capacity: 35,
-    image_url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&q=80',
-  },
-  {
-    id: 'b-init-3',
-    room_id: 'r-111',
-    user_name: 'Nguyễn Hoàng Long',
-    user_student_id: '22IT102',
-    booking_date: today,
-    time_slot: '13:00 - 15:00',
-    purpose: 'Tự học IELTS và làm đồ án tốt nghiệp',
-    status: 'confirmed',
-    created_at: new Date(Date.now() - 10800000).toISOString(),
-    room_name: 'VKU Library Zone A (Yên tĩnh)',
-    building: 'Thư viện Trung tâm',
-    capacity: 60,
-    image_url: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=800&q=80',
-  },
-];

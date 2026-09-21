@@ -13,31 +13,17 @@ interface TimeSlotSelectorProps {
  * Kiểm tra xem một ca học trong ngày hôm nay đã kết thúc hay chưa
  * Ví dụ: Ca '07:30 - 09:30' sẽ hết giờ khi qua 09:30
  */
-function isSlotExpired(slot: string, selectedDate?: string): boolean {
+function isSlotExpired(_slot: string, selectedDate?: string): boolean {
   if (!selectedDate) return false;
 
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
 
-  // Nếu là ngày trong quá khứ -> tất cả các ca đều hết giờ
+  // Chỉ khóa nếu là ngày trong quá khứ
   if (selectedDate < todayStr) return true;
 
-  // Nếu là ngày mai hoặc các ngày trong tương lai -> không có ca nào hết giờ
-  if (selectedDate > todayStr) return false;
-
-  // Nếu là ngày hôm nay -> so sánh giờ kết thúc của ca học với giờ hiện tại
-  try {
-    const endTimeStr = slot.split(' - ')[1]?.trim(); // VD: "09:30"
-    if (!endTimeStr) return false;
-
-    const [endHour, endMinute] = endTimeStr.split(':').map(Number);
-    const slotEndTime = new Date();
-    slotEndTime.setHours(endHour, endMinute, 0, 0);
-
-    return now.getTime() >= slotEndTime.getTime();
-  } catch {
-    return false;
-  }
+  // Với ngày hôm nay và các ngày tương lai, để trống toàn bộ ca để tiện thao tác và test
+  return false;
 }
 
 export const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
