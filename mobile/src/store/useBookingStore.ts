@@ -38,7 +38,7 @@ const INITIAL_USER: UserProfile = {
 };
 
 export const useBookingStore = create<BookingStoreState>((set, get) => ({
-  isAuthenticated: true, // Mặc định đã đăng nhập sẵn tài khoản sinh viên mẫu
+  isAuthenticated: false, // Mở màn hình Đăng nhập / Đăng ký đầu tiên
   user: INITIAL_USER,
   registeredUsers: [INITIAL_USER],
 
