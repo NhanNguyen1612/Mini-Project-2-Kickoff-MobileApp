@@ -17,6 +17,7 @@ import { FilterChips } from '../components/FilterChips';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import { useRoomsQuery } from '../hooks/useRoomsQuery';
 import { useBookingStore } from '../store/useBookingStore';
+import { useDebounce } from '../hooks/useDebounce';
 import { Room } from '../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -30,7 +31,12 @@ export const BrowseRoomsScreen: React.FC = () => {
     setSearchQuery,
     setSelectedBuilding,
     setSelectedCapacity,
+    setSelectedRoomType,
+    resetFilters,
   } = useBookingStore();
+
+  // Optimized Debounced Search for 60fps responsiveness (Slide 18)
+  const debouncedSearch = useDebounce(filters.searchQuery, 300);
 
   // TanStack Query for server state caching (Slide 30)
   const {
@@ -40,9 +46,10 @@ export const BrowseRoomsScreen: React.FC = () => {
     refetch,
     error,
   } = useRoomsQuery({
-    search: filters.searchQuery,
+    search: debouncedSearch,
     building: filters.selectedBuilding,
     minCapacity: filters.selectedCapacity,
+    roomType: filters.selectedRoomType,
   });
 
   const handleRoomPress = (roomId: string) => {
@@ -82,7 +89,19 @@ export const BrowseRoomsScreen: React.FC = () => {
         onSelectBuilding={setSelectedBuilding}
         selectedCapacity={filters.selectedCapacity}
         onSelectCapacity={setSelectedCapacity}
+        selectedRoomType={filters.selectedRoomType}
+        onSelectRoomType={setSelectedRoomType}
+        onResetFilters={resetFilters}
       />
+
+      {/* Room Count Summary */}
+      {rooms && (
+        <View style={styles.summaryBar}>
+          <Text style={styles.summaryText}>
+            Hiển thị <Text style={styles.summaryHighlight}>{rooms.length}</Text> phòng học phù hợp
+          </Text>
+        </View>
+      )}
 
       {/* Main 60fps FlatList Feed with Responsive Layout (Slide 17, 26, 27) */}
       {isLoading && !isRefetching ? (
@@ -151,6 +170,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginTop: 2,
+  },
+  summaryBar: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 2,
+  },
+  summaryText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  summaryHighlight: {
+    fontWeight: '700',
+    color: '#1E293B',
   },
   listContent: {
     padding: 16,

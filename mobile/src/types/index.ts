@@ -30,6 +30,8 @@ export interface Booking {
   building?: string;
   capacity?: number;
   image_url?: string;
+  is_offline_pending?: boolean;
+  cloud_id?: string;
 }
 
 export interface CreateBookingPayload {
@@ -51,6 +53,7 @@ export interface RoomFilterState {
   searchQuery: string;
   selectedBuilding: string;
   selectedCapacity: number; // 0 for all, or 20, 35, 50, etc.
+  selectedRoomType: string; // 'all' hoặc 'computer_lab' | 'theory_room' | 'meeting_room' | 'study_space'
   selectedStatus: 'all' | 'available' | 'occupied';
   selectedDate: string; // YYYY-MM-DD
 }

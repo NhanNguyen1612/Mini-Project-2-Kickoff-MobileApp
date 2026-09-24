@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBookingStore } from '../store/useBookingStore';
@@ -27,9 +28,10 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('Khoa Công nghệ Thông tin');
 
+  const [isLoading, setIsLoading] = useState(false);
   const { login, register } = useBookingStore();
 
-  const handleAuth = () => {
+  const handleAuth = async () => {
     if (!studentId.trim()) {
       Alert.alert('Lỗi', 'Vui lòng nhập Mã số sinh viên (MSSV).');
       return;
@@ -39,43 +41,44 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
       return;
     }
 
-    if (mode === 'login') {
-      const ok = login(studentId, password);
-      if (ok) {
-        Alert.alert('Thành công', `Chào mừng bạn quay trở lại!`);
-        onSuccess?.();
+    setIsLoading(true);
+    try {
+      if (mode === 'login') {
+        const ok = await login(studentId, password);
+        if (ok) {
+          Alert.alert('Thành công', `Chào mừng bạn quay trở lại!`);
+          onSuccess?.();
+        } else {
+          Alert.alert(
+            'Đăng nhập thất bại',
+            'Mã sinh viên hoặc mật khẩu không chính xác.\n(Tài khoản mẫu: 22IT001 / 123 hoặc 23IT190 / 123123)'
+          );
+        }
       } else {
-        Alert.alert(
-          'Đăng nhập thất bại',
-          'Mã sinh viên hoặc mật khẩu không chính xác.\n(Tài khoản mẫu: 22IT001 / mật khẩu: 123)'
-        );
-      }
-    } else {
-      if (!fullName.trim()) {
-        Alert.alert('Lỗi', 'Vui lòng nhập Họ và tên.');
-        return;
-      }
-      const res = register({
-        studentId: studentId.trim(),
-        fullName: fullName.trim(),
-        email: email.trim() || `${studentId.toLowerCase()}@vku.udn.vn`,
-        department: department.trim() || 'Khoa Công nghệ Thông tin',
-        password: password.trim(),
-      });
+        if (!fullName.trim()) {
+          Alert.alert('Lỗi', 'Vui lòng nhập Họ và tên.');
+          return;
+        }
+        const res = await register({
+          studentId: studentId.trim(),
+          fullName: fullName.trim(),
+          email: email.trim() || `${studentId.toLowerCase()}@vku.udn.vn`,
+          department: department.trim() || 'Khoa Công nghệ Thông tin',
+          password: password.trim(),
+        });
 
-      if (res.success) {
-        Alert.alert('🎉 Đăng ký thành công', `Tài khoản ${studentId.toUpperCase()} đã được tạo!`);
-        onSuccess?.();
-      } else {
-        Alert.alert('Lỗi', res.message || 'Không thể đăng ký tài khoản.');
+        if (res.success) {
+          Alert.alert('🎉 Đăng ký thành công', `Tài khoản ${studentId.toUpperCase()} đã được tạo!`);
+          onSuccess?.();
+        } else {
+          Alert.alert('Lỗi', res.message || 'Không thể đăng ký tài khoản.');
+        }
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const fillDemoAccount = () => {
-    setStudentId('22IT001');
-    setPassword('123');
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -172,21 +175,48 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onSuccess }) => {
 
             {/* Submit Button */}
             <Pressable
-              style={({ pressed }) => [styles.submitBtn, pressed && { opacity: 0.8 }]}
+              style={({ pressed }) => [
+                styles.submitBtn,
+                (pressed || isLoading) && { opacity: 0.8 },
+              ]}
               onPress={handleAuth}
+              disabled={isLoading}
             >
-              <Text style={styles.submitBtnText}>
-                {mode === 'login' ? 'Đăng Nhập Vào Ứng Dụng' : 'Tạo Tài Khoản Sinh Viên'}
-              </Text>
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {mode === 'login' ? 'Đăng Nhập Vào Ứng Dụng' : 'Tạo Tài Khoản Sinh Viên'}
+                </Text>
+              )}
             </Pressable>
 
-            {/* Quick Demo Fill (Hỗ trợ chấm điểm nhanh) */}
+            {/* Quick Demo Fill (Hỗ trợ chuyển đổi nhanh giữa 2 sinh viên để test đồng bộ) */}
             {mode === 'login' && (
-              <Pressable style={styles.demoFillBtn} onPress={fillDemoAccount}>
-                <Text style={styles.demoFillText}>
-                  💡 Điền nhanh tài khoản mẫu (22IT001 / 123)
-                </Text>
-              </Pressable>
+              <View style={{ gap: 8, marginTop: 4 }}>
+                <Pressable
+                  style={styles.demoFillBtn}
+                  onPress={() => {
+                    setStudentId('23IT190');
+                    setPassword('123123');
+                  }}
+                >
+                  <Text style={styles.demoFillText}>
+                    💡 Điền nhanh tài khoản Vivi (23IT190 / 123123)
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.demoFillBtn, { backgroundColor: '#F1F5F9' }]}
+                  onPress={() => {
+                    setStudentId('22IT001');
+                    setPassword('123');
+                  }}
+                >
+                  <Text style={[styles.demoFillText, { color: '#475569' }]}>
+                    💡 Điền nhanh tài khoản mẫu (22IT001 / 123)
+                  </Text>
+                </Pressable>
+              </View>
             )}
           </View>
         </ScrollView>

@@ -6,6 +6,7 @@ interface UseRoomsOptions {
   search?: string;
   building?: string;
   minCapacity?: number;
+  roomType?: string;
   date?: string;
   slot?: string;
 }
@@ -23,5 +24,6 @@ export function useRoomDetailQuery(roomId: string, date: string) {
     queryKey: ['roomDetail', roomId, date],
     queryFn: () => apiService.getRoomDetail(roomId, date),
     enabled: !!roomId,
+    refetchInterval: 2000, // Tự động thăm dò sau mỗi 2 giây để đồng bộ tức thì giữa các máy
   });
 }

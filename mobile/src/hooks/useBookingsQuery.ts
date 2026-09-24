@@ -6,6 +6,7 @@ export function useBookingsQuery(studentId?: string) {
   return useQuery<Booking[]>({
     queryKey: ['bookings', studentId],
     queryFn: () => apiService.getBookings(studentId),
+    refetchInterval: 3000,
   });
 }
 

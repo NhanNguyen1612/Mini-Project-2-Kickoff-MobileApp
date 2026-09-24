@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,40 @@ import {
   Alert,
   ActivityIndicator,
   TextInput,
+  Modal,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import type { RouteProp } from '@react-navigation/native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types/navigation';
+import { Booking } from '../types';
 import { useRoomDetailQuery } from '../hooks/useRoomsQuery';
 import { useCreateBookingMutation } from '../hooks/useBookingsQuery';
 import { TimeSlotSelector } from '../components/TimeSlotSelector';
+import { QRCodeTicketModal } from '../components/QRCodeTicketModal';
 import { useBookingStore } from '../store/useBookingStore';
 
 type RouteType = RouteProp<RootStackParamList, 'RoomDetail'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface ConfirmedBookingData {
+  roomName: string;
+  building: string;
+  date: string;
+  slot: string;
+  studentId: string;
+  fullName: string;
+  id: string;
+  isOfflinePending?: boolean;
+}
 
 export const RoomDetailScreen: React.FC = () => {
   const route = useRoute<RouteType>();
@@ -33,6 +53,27 @@ export const RoomDetailScreen: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [purpose, setPurpose] = useState('');
+  const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBookingData | null>(null);
+  const [ticketBooking, setTicketBooking] = useState<Booking | null>(null);
+  const [showQrModal, setShowQrModal] = useState<boolean>(false);
+
+  // A short, subtle scale change avoids the modal bouncing into view.
+  const scaleVal = useSharedValue(0.96);
+
+  useEffect(() => {
+    if (confirmedBooking) {
+      scaleVal.value = withTiming(1, {
+        duration: 180,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else {
+      scaleVal.value = 0.96;
+    }
+  }, [confirmedBooking, scaleVal]);
+
+  const animatedModalStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scaleVal.value }],
+  }));
 
   const { user } = useBookingStore();
 
@@ -47,7 +88,7 @@ export const RoomDetailScreen: React.FC = () => {
     }
 
     try {
-      await createBookingMutation.mutateAsync({
+      const result = await createBookingMutation.mutateAsync({
         room_id: roomId,
         user_name: user.fullName,
         user_student_id: user.studentId,
@@ -56,22 +97,26 @@ export const RoomDetailScreen: React.FC = () => {
         purpose: purpose.trim() || 'Học tập & Nghiên cứu',
       });
 
-      Alert.alert(
-        '🎉 Đặt phòng thành công!',
-        `Bạn đã đặt thành công phòng ${data?.room.name} vào ca ${selectedSlot}, ngày ${selectedDate}.`,
-        [
-          {
-            text: 'Xem lịch đặt phòng',
-            onPress: () => {
-              navigation.navigate('MainTabs', { screen: 'MyBookings' } as any);
-            },
-          },
-        ]
-      );
+      setTicketBooking(result);
+
+      // Show animated celebration modal instead of basic alert (Slide 30 UI/UX)
+      setConfirmedBooking({
+        roomName: data?.room.name || 'Phòng học VKU',
+        building: data?.room.building || 'Khuôn viên VKU',
+        date: selectedDate,
+        slot: selectedSlot,
+        studentId: user.studentId,
+        fullName: user.fullName,
+        id: result?.id || `BK-${Date.now().toString().slice(-6)}`,
+        isOfflinePending: result?.is_offline_pending,
+      });
+
       setSelectedSlot(null);
-    } catch (err: any) {
+      setPurpose('');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Khung giờ này đã bị trùng lịch!';
       // Conflict alert (Chống trùng lịch)
-      Alert.alert('❌ Không thể đặt phòng', err.message || 'Khung giờ này đã bị trùng lịch!');
+      Alert.alert('❌ Không thể đặt phòng', errorMessage);
     }
   };
 
@@ -217,6 +262,122 @@ export const RoomDetailScreen: React.FC = () => {
           )}
         </Pressable>
       </View>
+
+      {/* Slide 30 / Rubric UI/UX: Animated Celebration & Receipt Modal */}
+      <Modal
+        visible={!!confirmedBooking}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setConfirmedBooking(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[styles.modalCard, animatedModalStyle]}>
+            {/* Header Badge */}
+            <View style={styles.modalIconContainer}>
+              <Text style={styles.modalIcon}>🎉</Text>
+            </View>
+
+            <Text style={styles.modalTitle}>
+              {confirmedBooking?.isOfflinePending ? 'Đã lưu lịch chờ xác nhận' : 'Đặt Phòng Thành Công!'}
+            </Text>
+            <Text style={styles.modalSubtitle}>
+              {confirmedBooking?.isOfflinePending
+                ? 'Lịch đã lưu trên thiết bị. Hãy đồng bộ khi kết nối lại để được xác nhận.'
+                : 'Lịch đặt phòng đã được máy chủ xác nhận.'}
+            </Text>
+
+            {/* Ticket Receipt Box */}
+            {confirmedBooking && (
+              <View style={styles.ticketBox}>
+                <View style={styles.ticketRow}>
+                  <Text style={styles.ticketLabel}>🏫 Phòng:</Text>
+                  <Text style={styles.ticketValueBold}>{confirmedBooking.roomName}</Text>
+                </View>
+                <View style={styles.ticketRow}>
+                  <Text style={styles.ticketLabel}>📍 Tòa nhà:</Text>
+                  <Text style={styles.ticketValue}>{confirmedBooking.building}</Text>
+                </View>
+                <View style={styles.ticketDivider} />
+                <View style={styles.ticketRow}>
+                  <Text style={styles.ticketLabel}>🗓 Ngày đặt:</Text>
+                  <Text style={styles.ticketValueBold}>{confirmedBooking.date}</Text>
+                </View>
+                <View style={styles.ticketRow}>
+                  <Text style={styles.ticketLabel}>⏰ Khung giờ:</Text>
+                  <Text style={styles.ticketValueHighlight}>{confirmedBooking.slot}</Text>
+                </View>
+                <View style={styles.ticketDivider} />
+                <View style={styles.ticketRow}>
+                  <Text style={styles.ticketLabel}>👤 Sinh viên:</Text>
+                  <Text style={styles.ticketValue}>{confirmedBooking.fullName} ({confirmedBooking.studentId})</Text>
+                </View>
+                <View style={styles.ticketRow}>
+                  <Text style={styles.ticketLabel}>🎫 Mã phiếu:</Text>
+                  <Text style={styles.ticketCode}>#{confirmedBooking.id.slice(-6).toUpperCase()}</Text>
+                </View>
+                <View style={styles.ticketDivider} />
+                <View style={[styles.ticketRow, { justifyContent: 'center', marginTop: 4 }]}>
+                  <View
+                    style={[
+                      styles.syncStatusBadge,
+                      confirmedBooking.isOfflinePending
+                        ? styles.syncStatusBadgePending
+                        : styles.syncStatusBadgeConfirmed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.syncStatusBadgeText,
+                        confirmedBooking.isOfflinePending
+                          ? styles.syncStatusBadgeTextPending
+                          : styles.syncStatusBadgeTextConfirmed,
+                      ]}
+                    >
+                      {confirmedBooking.isOfflinePending
+                        ? '⏳ Lưu tạm Offline (Chờ mạng đồng bộ)'
+                        : '✅ Máy chủ đã xác nhận'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <Pressable
+                style={({ pressed }) => [styles.qrModalBtn, pressed && { opacity: 0.85 }]}
+                onPress={() => setShowQrModal(true)}
+              >
+                <Text style={styles.qrModalBtnText}>🎫 Xem Thẻ Vé QR Code</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.primaryModalBtn, pressed && { opacity: 0.85 }]}
+                onPress={() => {
+                  setConfirmedBooking(null);
+                  navigation.navigate('MainTabs', { screen: 'MyBookings' });
+                }}
+              >
+                <Text style={styles.primaryModalBtnText}>📅 Xem trong Lịch đặt phòng</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [styles.secondaryModalBtn, pressed && { opacity: 0.7 }]}
+                onPress={() => setConfirmedBooking(null)}
+              >
+                <Text style={styles.secondaryModalBtnText}>Đặt thêm ca khác</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* QR Code Ticket Modal */}
+      <QRCodeTicketModal
+        booking={ticketBooking}
+        visible={showQrModal}
+        onClose={() => setShowQrModal(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -409,5 +570,156 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EFF6FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalIcon: {
+    fontSize: 32,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  ticketBox: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    gap: 8,
+  },
+  ticketRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  ticketLabel: {
+    fontSize: 12.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  ticketValue: {
+    fontSize: 13,
+    color: '#1E293B',
+    fontWeight: '500',
+  },
+  ticketValueBold: {
+    fontSize: 13.5,
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  ticketValueHighlight: {
+    fontSize: 13,
+    color: '#2563EB',
+    fontWeight: '800',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  ticketCode: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  ticketDivider: {
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 2,
+  },
+  modalActions: {
+    width: '100%',
+    marginTop: 20,
+    gap: 10,
+  },
+  primaryModalBtn: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryModalBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  secondaryModalBtn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  secondaryModalBtnText: {
+    color: '#64748B',
+    fontSize: 13.5,
+    fontWeight: '600',
+  },
+  qrModalBtn: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 13,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  qrModalBtnText: {
+    color: '#38BDF8',
+    fontSize: 14.5,
+    fontWeight: '700',
+  },
+  syncStatusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  syncStatusBadgeConfirmed: {
+    backgroundColor: '#ECFDF5',
+  },
+  syncStatusBadgePending: {
+    backgroundColor: '#FFFBEB',
+  },
+  syncStatusBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  syncStatusBadgeTextConfirmed: {
+    color: '#059669',
+  },
+  syncStatusBadgeTextPending: {
+    color: '#D97706',
   },
 });

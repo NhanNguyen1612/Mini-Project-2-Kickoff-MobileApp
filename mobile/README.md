@@ -1,6 +1,8 @@
 # VKU Room Booking App - Mobile Client (React Native & Expo)
 
-Ứng dụng di động đặt phòng học & phòng lab thời gian thực tại Trường Đại học Công nghệ Thông tin và Truyền thông Việt - Hàn (VKU), thực hiện theo yêu cầu **Week 5 Mini-Project 2**.
+> Phiên bản hiện tại: Expo SDK 57, React Native 0.86.3, React 19.2.3 và TypeScript 6.
+
+Ứng dụng di động đặt phòng học & phòng lab tại VKU, xây dựng theo nội dung Week 5 và Week 6 Mini-Project 2.
 
 ---
 
@@ -15,9 +17,9 @@
 | **expo-image** (Slide 16) | `RoomCard.tsx`, `RoomDetailScreen.tsx` | Sử dụng `expo-image` để disk caching, blur placeholder và transition |
 | **SafeArea & Notch** (Slide 24) | `App.tsx`, Screens | Sử dụng `SafeAreaProvider` và `SafeAreaView` từ `react-native-safe-area-context` |
 | **Custom Hook `useResponsiveLayout`** (Slide 26) | `src/hooks/useResponsiveLayout.ts` | Xử lý breakpoint (480 / 768) tự động chuyển đổi số cột (1 cột điện thoại, 2-3 cột tablet/ngang) |
-| **FlatList 60fps & 20+ Phòng Mẫu** (Slide 17, 32) | `BrowseRoomsScreen.tsx`, `mockData.ts` | Tối ưu `initialNumToRender={10}`, `maxToRenderPerBatch={5}`, `windowSize={5}`, nạp sẵn 24 phòng học |
-| **Search & Multi-parameter Filters** (Slide 30) | `SearchBar.tsx`, `FilterChips.tsx` | Tìm kiếm tức thì, lọc theo Tòa nhà, Sức chứa và Trạng thái |
-| **Time-slot & Chống Trùng Lịch** (Slide 30) | `TimeSlotSelector.tsx`, `api.ts` | Vô hiệu hóa ca đã đặt, transaction/query kiểm tra xung đột thời gian thực |
+| **FlatList & 20+ Phòng Mẫu** (Slide 17, 32) | `BrowseRoomsScreen.tsx`, `mockData.ts` | Có cấu hình tối ưu FlatList và 24 phòng mẫu; chưa đo fps trên điện thoại |
+| **Search & Multi-parameter Filters** (Slide 30) | `SearchBar.tsx`, `FilterChips.tsx` | Tìm kiếm theo tên/mô tả, lọc theo tòa nhà, sức chứa và loại phòng |
+| **Time-slot & Chống Trùng Lịch** (Slide 30) | `TimeSlotSelector.tsx`, `api.ts`, `metro.config.js` | Máy chủ kiểm tra trùng phòng/ngày/ca trước khi xác nhận |
 | **React Navigation 7** (Slide 30) | `src/navigation/` | Tách biệt `RootNavigator.tsx` (Stack) và `MainTabs.tsx` (Tabs) |
 | **State Management** (Slide 30) | `useBookingStore.ts` (Zustand) + `useRoomsQuery.ts` (TanStack Query) | Quản lý client state kết hợp cache server state |
 
@@ -44,7 +46,8 @@ npx expo start
 
 ---
 
-## 🔄 Chế Độ Hoạt Động (Offline Mock vs. Cloudflare D1)
+## 🔄 Lưu dữ liệu và chế độ offline
 
-- **Mặc định (Chấm điểm an toàn)**: Ứng dụng hoạt động 100% đầy đủ chức năng với bộ dữ liệu 24 phòng học có sẵn trong `mockData.ts` và bộ lưu trữ cục bộ `useBookingStore`. Không cần backend vẫn đặt phòng, kiểm tra chống trùng lịch, hủy phòng bình thường.
-- **Kết nối Cloudflare D1**: Vào tab **Profile** -> Dán URL Cloudflare Worker vào ô URL -> Bấm **Lưu & Kiểm tra kết nối**. Ứng dụng sẽ tự động chuyển sang đọc/ghi trực tiếp trên cơ sở dữ liệu edge Cloudflare D1!
+- Danh sách 24 phòng là dữ liệu mẫu trong `mockData.ts`. API tích hợp trong Metro lưu lịch đã xác nhận vào `bookings.json`; mở Expo với `npm start` để chạy API.
+- Lịch tạo khi không kết nối được API được lưu bằng AsyncStorage trên thiết bị ở trạng thái **chờ xác nhận**. Trong tab **My Bookings**, bấm **Đồng bộ** khi có kết nối. Nếu người khác đã đặt ca đó, lịch chờ sẽ bị từ chối.
+- Hủy lịch đã xác nhận cần kết nối API và chỉ báo thành công sau khi máy chủ phản hồi. Điện thoại cần cùng mạng LAN với máy chạy Metro; Expo tunnel/4G không bảo đảm truy cập API này.

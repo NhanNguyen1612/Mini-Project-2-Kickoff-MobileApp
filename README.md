@@ -1,5 +1,7 @@
 # Mini-Project 2: Real-time Study Room Booking App (VKU Room Booking)
 
+> Nền tảng hiện tại: Expo SDK 57, React Native 0.86.3, React 19.2.3 và TypeScript 6.
+
 > **Môn học**: Phát triển Ứng dụng Di động Đa nền tảng (Cross-Platform Mobile App Development)  
 > **Khoa**: Khoa Khoa học Máy tính, Trường Đại học Công nghệ Thông tin và Truyền thông Việt - Hàn (VKU)  
 > **Giảng viên**: TS. Nguyễn Thanh Tuấn  
@@ -7,9 +9,9 @@
 
 ---
 
-## 📌 Bám Sát Yêu Cầu Slide Week 5 (100% Theo Đề Bài)
+## 📌 Đối chiếu yêu cầu Week 5 và Week 6
 
-Dự án tập trung hoàn toàn vào xây dựng **Ứng dụng Di động thuần React Native + Expo Managed Workflow** theo đúng nội dung và tiêu chí chấm điểm của slide bài giảng:
+Dự án xây dựng ứng dụng di động React Native + Expo. Các chức năng bên dưới đã có trong mã nguồn; hiệu năng và giao diện cần kiểm tra thêm trên điện thoại thật.
 
 | Tiêu chí trong Slide | Thành phần triển khai trong dự án | Vị trí file mã nguồn |
 | :--- | :--- | :--- |
@@ -18,9 +20,9 @@ Dự án tập trung hoàn toàn vào xây dựng **Ứng dụng Di động thu�
 | **StyleSheet & Flexbox** (Slide 14, 15, 21-23) | `StyleSheet.create()`, Flexbox layout (mặc định `column`), `gap`, `space-between` | Toàn bộ các components |
 | **Safe Area & Dynamic Island** (Slide 24) | `SafeAreaProvider` và `SafeAreaView` từ `react-native-safe-area-context` | `App.tsx`, tất cả các màn hình |
 | **Custom Hook Responsive** (Slide 26, 27) | `useResponsiveLayout.ts` tự động chia cột (1 cột Mobile, 2 cột rộng, 3 cột Tablet) | `src/hooks/useResponsiveLayout.ts` |
-| **Tối ưu FlatList 60fps** (Slide 17, 32) | `initialNumToRender={10}`, `maxToRenderPerBatch={5}`, `windowSize={5}`, memoized card | `src/screens/BrowseRoomsScreen.tsx` |
+| **Tối ưu FlatList** (Slide 17, 32) | `initialNumToRender={10}`, `maxToRenderPerBatch={5}`, `windowSize={5}`; chưa đo fps trên thiết bị | `src/screens/BrowseRoomsScreen.tsx` |
 | **Dữ liệu mẫu >= 20 phòng** (Slide 32) | 24 phòng học, giảng đường và lab thực tế tại VKU (A1, A2, A3, Thư viện, Tòa V, Khu K) | `src/services/mockData.ts` |
-| **Time-slot & Chống Trùng Lịch** (Slide 30) | `TimeSlotSelector.tsx` tự động vô hiệu hóa các ca đã có người đặt trước | `src/components/TimeSlotSelector.tsx`, `api.ts` |
+| **Time-slot & Chống Trùng Lịch** (Slide 30) | Máy chủ từ chối trùng phòng/ngày/ca; lịch offline chờ đồng bộ mới được xác nhận | `src/components/TimeSlotSelector.tsx`, `api.ts`, `metro.config.js` |
 | **Navigation** (Slide 29, 30) | React Navigation 7 (Native Stack `RootNavigator` + Bottom Tabs `MainTabs`) | `src/navigation/` |
 | **State Management** (Slide 30) | Zustand (Client UI State) + TanStack Query (Server State Caching) | `src/store/`, `src/hooks/useRoomsQuery.ts` |
 
@@ -79,3 +81,15 @@ npx expo start
 - **Chạy trên Máy ảo Android (Android Studio)**: Nhấn phím `a` trên bàn phím.
 - **Chạy trên Điện thoại thật (Expo Go)**: Dùng app Expo Go quét mã QR trên màn hình.
 - **Chạy trên Trình duyệt Web**: Nhấn phím `w` trên bàn phím.
+
+### Cách lưu và xác nhận lịch
+
+- Máy chủ API tích hợp trong Expo Metro ở cổng 8081 lưu lịch vào `mobile/bookings.json`. Điện thoại cần truy cập được máy chủ này để xác nhận đặt hoặc hủy phòng.
+- Khi mất kết nối, lịch mới được lưu bằng AsyncStorage trên thiết bị ở trạng thái **chờ xác nhận**. Mở tab **My Bookings** và chọn **Đồng bộ** khi có kết nối; máy chủ có thể từ chối lịch nếu ca đó đã được đặt trước.
+- Chế độ Expo tunnel/4G không bảo đảm truy cập được API tại máy đang chạy Metro. Để demo đồng bộ giữa nhiều thiết bị, dùng cùng mạng LAN và giữ Metro đang chạy.
+
+### Kiểm tra trước khi nộp
+
+- Quay video demo 2–3 phút trên điện thoại thật, kiểm tra đặt phòng, trùng lịch, hủy lịch và đồng bộ offline.
+- Nộp liên kết GitHub public, hướng dẫn chạy ứng dụng và báo cáo PDF 2–4 trang theo mẫu chính thức của môn học. Mẫu báo cáo chưa có trong repository nên cần đối chiếu trước khi nộp.
+- Báo cáo PDF và video demo nộp riêng; repository này chỉ chứa README và mã nguồn ứng dụng.
